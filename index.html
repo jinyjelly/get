@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>수업 진도표</title>
+  <style>
+    :root{
+      --bg:#f7f8fb;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --primary:#4f46e5;
+      --primary-soft:#eef2ff;
+      --done:#16a34a;
+      --done-soft:#ecfdf3;
+      --danger:#dc2626;
+      --shadow:0 8px 24px rgba(15,23,42,.06);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+    }
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:920px;margin:0 auto;padding:14px 14px 92px}
+    .topbar{
+      position:sticky;top:0;z-index:20;
+      padding:12px 0 10px;
+      background:linear-gradient(var(--bg) 78%,rgba(247,248,251,0));
+      backdrop-filter:blur(8px);
+    }
+    .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    h1{font-size:22px;margin:0;font-weight:800;letter-spacing:-.5px}
+    .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .icon-btn,.btn{
+      border:1px solid var(--line);background:#fff;color:var(--ink);
+      border-radius:12px;padding:9px 12px;font-weight:700;
+    }
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .btn.ghost{background:transparent}
+    .btn.danger{color:var(--danger)}
+    .section-card{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:14px;margin-top:10px;
+    }
+    .section-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .section-title{font-size:15px;font-weight:800}
+    .class-list{display:flex;flex-wrap:wrap;gap:7px}
+    .class-fold > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:28px}
+    .class-fold > summary::-webkit-details-marker{display:none}
+    .class-fold > summary:focus-visible{outline:3px solid #a5b4fc;border-radius:8px}
+    .class-fold-arrow{color:var(--muted);font-size:15px;transition:transform .15s}
+    .class-fold[open] .class-fold-arrow{transform:rotate(180deg)}
+    .class-fold-content{padding-top:12px;border-top:1px solid var(--line);margin-top:10px}
+    .class-fold-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .class-fold-hint{font-size:12px;color:var(--muted)}
+    .class-chip{border:1px solid #c7d2fe;background:var(--primary-soft);color:#3730a3;border-radius:12px;padding:10px 13px;font-weight:800;font-size:13px}
+    .class-chip:focus-visible{outline:3px solid #a5b4fc;outline-offset:2px}
+    .class-menu-actions{display:grid;gap:9px}
+    .class-menu-actions button{text-align:left;padding:13px 14px}
+    .class-menu-actions .danger{color:var(--danger)}
+    .lesson-list{display:grid;gap:12px;margin-top:12px}
+    .lesson{
+      background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow);overflow:hidden;
+    }
+    .lesson-body{display:block}
+    .lesson-summary{display:flex;align-items:center;gap:7px;padding:9px 10px;background:#fff;min-width:0}
+    .lesson-toggle{min-width:0;flex:1;border:0;background:#fff;display:flex;align-items:center;gap:8px;text-align:left;padding:2px 0;cursor:pointer;color:inherit}
+    .summary-progress{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;flex:0 1 auto;max-width:52%}
+    .summary-class{border:1px solid #dbe2ed;background:#f8fafc;color:#64748b;border-radius:8px;padding:5px 6px;font-size:11px;font-weight:800;white-space:nowrap}
+    .summary-class.done{background:var(--done-soft);border-color:#bbf7d0;color:#15803d}
+    .summary-class:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+    .lesson-toggle:focus-visible{outline:3px solid #a5b4fc;outline-offset:-3px}
+    .lesson-toggle .lesson-no{height:35px;min-width:51px;border-radius:10px;font-size:12px}
+    .lesson-toggle .lesson-main{min-width:0;flex:1}
+    .lesson-toggle .lesson-title{font-size:14px;line-height:1.4}
+    .lesson-chevron{color:var(--muted);font-size:16px;flex:0 0 auto}
+    .lesson-details[hidden]{display:none!important}
+    .lesson-details .lesson-note{padding:2px 12px 8px}
+    .lesson-details .lesson-content{padding:2px 0 10px}
+    .lesson-details .progress{border-top:1px solid var(--line)}
+    .lesson-content{min-width:0;padding-bottom:10px}
+    .lesson-head{display:flex;gap:9px;align-items:flex-start;padding:12px 10px 6px 12px}
+    .lesson-title-row{min-width:0;flex:1}
+    .lesson-actions{display:flex;flex-wrap:wrap;gap:4px;padding:1px 10px 0 12px}
+    .lesson-actions .mini{padding:5px 7px;font-size:12px;background:#f8fafc}
+    .lesson-content .resources{padding:0 10px 0 12px}
+    .lesson-no{
+      flex:0 0 auto;min-width:48px;height:48px;border-radius:14px;
+      background:var(--primary-soft);color:var(--primary);
+      display:flex;align-items:center;justify-content:center;font-weight:900;
+    }
+    .lesson-main{min-width:0;flex:1}
+    .lesson-title{font-size:16px;font-weight:800;white-space:pre-wrap;word-break:break-word}
+    .lesson-note{font-size:13px;color:var(--muted);margin-top:4px;white-space:pre-wrap;word-break:break-word}
+    .mini{border:none;background:transparent;color:var(--muted);padding:6px;border-radius:8px;font-weight:700}
+    .resources{padding:0 14px 12px}
+    .resources:empty{display:none}
+    .resource-remove{border:0;background:#fff0f0;color:#be123c;padding:5px 8px;border-radius:9px;font-size:12px;font-weight:800;flex:0 0 auto}
+    .resource{
+      display:flex;align-items:center;gap:8px;background:#f9fafb;border:1px solid var(--line);
+      border-radius:12px;padding:8px 10px;margin-top:7px;min-width:0;
+    }
+    .resource .label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}
+    .resource a,.resource .file-link{color:var(--primary);text-decoration:none;font-weight:700;font-size:13px;flex:1;min-width:0;overflow-wrap:anywhere;text-align:left}.resource .file-link{border:0;background:none;padding:0;cursor:pointer}
+    .progress{
+      border-top:1px solid var(--line);padding:10px 12px;
+      display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:7px;
+      background:#fafbff;min-width:0;
+    }
+    .progress-label{font-size:11px;font-weight:800;color:var(--muted);margin-right:4px}
+    .done-btn{
+      border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 8px;
+      font-weight:800;font-size:13px;color:#4b5563;min-width:53px;
+    }
+    .done-btn.done{background:var(--done-soft);border-color:#bbf7d0;color:#15803d}
+    .class-progress{display:flex;flex-direction:column;gap:5px;min-width:103px}
+    .class-progress .done-btn{width:100%;padding:7px 8px}
+    .class-date{width:100%;min-width:0;max-width:135px;border:1px solid #dbe3ef;border-radius:9px;background:#fff;color:#475569;font-size:12px;padding:5px 3px;box-sizing:border-box}
+    .progress-hint{width:100%;font-size:11px;color:var(--muted)}
+    .empty{text-align:center;color:var(--muted);padding:30px 12px;background:#fff;border:1px dashed var(--line);border-radius:var(--radius);margin-top:12px}
+    .fab{
+      position:fixed;right:18px;bottom:20px;z-index:30;
+      border:none;border-radius:999px;background:var(--primary);color:#fff;
+      padding:14px 18px;font-weight:900;box-shadow:0 10px 30px rgba(79,70,229,.35)
+    }
+    dialog{border:none;border-radius:20px;padding:0;max-width:560px;width:calc(100% - 28px);box-shadow:0 20px 70px rgba(15,23,42,.25)}
+    dialog::backdrop{background:rgba(15,23,42,.35);backdrop-filter:blur(2px)}
+    .modal{padding:18px}
+    .modal h2{font-size:18px;margin:0 0 14px}
+    .field{margin-bottom:12px}
+    .field label{display:block;font-size:12px;color:var(--muted);font-weight:800;margin-bottom:5px}
+    .field input,.field textarea{
+      width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:#fff;outline:none;
+    }
+    .field textarea{min-height:92px;resize:vertical}
+    .field input:focus,.field textarea:focus{border-color:#a5b4fc;box-shadow:0 0 0 3px #eef2ff}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+    .resource-add{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .small-note{font-size:12px;color:var(--muted);line-height:1.5}
+    .toolbar{display:flex;flex-wrap:wrap;gap:7px}
+    .save-toast{position:fixed;z-index:100;left:50%;bottom:82px;transform:translateX(-50%);background:#1f2937;color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:800;box-shadow:0 6px 18px #0003;white-space:nowrap}
+    @media (max-width:520px){
+      .app{padding:10px 10px 88px}
+      h1{font-size:20px}
+      .lesson-head{padding:11px 7px 7px 10px;gap:7px}
+      .lesson-content .resources{padding:0 7px 0 10px}
+      .lesson-actions{padding:4px 7px 0 10px}
+      .lesson-actions .mini{font-size:11px;padding:5px 6px}
+      .progress{padding:10px;gap:6px}
+      .done-btn{font-size:12px;padding:8px 10px}
+      .lesson-no{min-width:41px;height:41px;font-size:12px}
+      .lesson-summary{gap:5px;padding:8px}
+      .lesson-toggle{gap:5px}
+      .lesson-toggle .lesson-title{font-size:13px}
+      .summary-progress{max-width:53%;gap:3px}
+      .summary-class{font-size:10px;padding:4px 5px}
+      .resource-add{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="title-row">
+      <div>
+        <h1>수업 진도표</h1>
+        <div class="sub">차시별 수업 내용과 반별 진행 상황을 한눈에</div>
+      </div>
+      <button class="icon-btn" id="openSettings">설정</button>
+    </div>
+  </div>
+
+  <section class="section-card">
+    <details class="class-fold" id="classFold">
+      <summary aria-label="반 관리 접기 또는 펼치기">
+        <span class="section-title">반 관리 <span id="classCount" class="class-fold-hint"></span></span>
+        <span class="class-fold-arrow" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="class-fold-content">
+        <div class="class-fold-actions">
+          <span class="class-fold-hint">반 이름을 눌러 수정·삭제</span>
+          <button class="btn" id="addClassBtn" type="button">+ 반 추가</button>
+        </div>
+        <div id="classList" class="class-list"></div>
+      </div>
+    </details>
+  </section>
+
+  <div id="lessonList" class="lesson-list"></div>
+  <div id="emptyState" class="empty" hidden>아직 등록된 차시가 없어요.<br>아래 <b>+ 차시 추가</b>를 눌러 시작해보세요.</div>
+</div>
+
+<button class="fab" id="addLessonBtn">+ 차시 추가</button>
+<div class="save-toast" id="saveToast" hidden role="status">✓ 저장했어요</div>
+
+<dialog id="classMenuDialog">
+  <div class="modal">
+    <h2 id="classMenuTitle">반 관리</h2>
+    <div class="class-menu-actions">
+      <button type="button" class="btn" id="menuEditClass">✏️ 반 이름 수정</button>
+      <button type="button" class="btn danger" id="menuDeleteClass">🗑️ 반 삭제</button>
+      <button type="button" class="btn" id="menuCloseClass">취소</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="classDialog">
+  <div class="modal">
+    <h2 id="classDialogTitle">반 추가</h2>
+    <div class="field" id="classNameField">
+      <label for="classNameInput">반 이름</label>
+      <input id="classNameInput" type="text" autocomplete="off" placeholder="예: 4반" maxlength="40" />
+    </div>
+    <p id="classDeleteNotice" class="small-note" hidden>이 반의 완료 체크 기록도 함께 삭제됩니다. 다른 반과 차시 내용은 유지돼요.</p>
+    <p id="classError" role="alert" style="display:none;color:#b91c1c;font-size:13px;font-weight:700"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelClassBtn">취소</button>
+      <button type="button" class="btn primary" id="saveClassBtn">저장</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="lessonDialog">
+  <div class="modal" id="lessonForm">
+    <h2 id="lessonDialogTitle">차시 추가</h2>
+    <div class="field">
+      <label for="lessonNo">차시</label>
+      <input id="lessonNo" inputmode="numeric" placeholder="예: 1" required />
+    </div>
+    <div class="field">
+      <label for="lessonTitle">수업 내용</label>
+      <textarea id="lessonTitle" placeholder="예: 1단원 핵심 개념 설명 및 활동" required></textarea>
+    </div>
+    <div class="field">
+      <label for="lessonNote">메모 (선택)</label>
+      <textarea id="lessonNote" placeholder="준비물, 숙제, 유의사항 등을 적어두세요."></textarea>
+    </div>
+    <div class="field">
+      <label>사이트 링크 추가 (선택)</label>
+      <div class="resource-add">
+        <input id="linkName" placeholder="링크 이름" />
+        <input id="linkUrl" placeholder="https://..." />
+      </div>
+      <div class="small-note">저장 후에도 링크를 추가할 수 있어요.</div>
+    </div>
+    <div class="field">
+      <label for="lessonFileInput">파일 자료 첨부 (선택)</label>
+      <input type="file" id="lessonFileInput" multiple />
+      <div class="small-note">파일을 선택한 뒤 아래 저장을 누르면 차시와 함께 저장됩니다. 기존 첨부파일은 유지됩니다.</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelLessonBtn">취소</button>
+      <button type="button" class="btn primary" id="saveLessonBtn">저장</button>
+    </div>
+    <p id="saveError" role="alert" style="display:none;color:#b91c1c;font-size:13px;font-weight:700;line-height:1.6"></p>
+  </div>
+</dialog>
+
+<dialog id="resourceDialog">
+  <div class="modal">
+    <h2>자료 관리</h2>
+    <div class="field">
+      <button type="button" class="btn" id="editLessonFromResources">✏️ 차시 제목·내용 수정</button>
+    </div>
+    <div class="field">
+      <label>사이트 링크</label>
+      <input id="resLinkName" placeholder="예: 활동 영상" />
+      <div style="height:7px"></div>
+      <input id="resLinkUrl" placeholder="https://..." />
+      <div style="height:8px"></div>
+      <button class="btn primary" id="addLinkConfirm">링크 추가</button>
+    </div>
+    <div class="field">
+      <label>파일 자료</label>
+      <input type="file" id="fileInput" />
+      <div class="small-note">파일은 이 기기의 브라우저에 저장됩니다. 다른 기기와 자동 공유되지는 않아요.</div>
+    </div>
+    <div class="field">
+      <label>등록된 자료 · 파일만 삭제하려면 해당 파일 옆 휴지통을 누르세요</label>
+      <div id="resourceManageList" class="small-note"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="closeResource">닫기</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirmDeleteDialog">
+  <div class="modal">
+    <h2 id="confirmDeleteTitle">삭제 확인</h2>
+    <p class="small-note" id="confirmDeleteMessage"></p>
+    <p class="small-note" id="confirmDeleteError" style="display:none;color:#b91c1c"></p>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="cancelDeleteBtn">취소</button>
+      <button type="button" class="btn danger" id="confirmDeleteBtn">삭제하기</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="settingsDialog">
+  <div class="modal">
+    <h2>데이터 관리</h2>
+    <div class="toolbar">
+      <button class="btn" id="exportBtn">백업 파일 내보내기</button>
+      <button class="btn" id="importBtn">백업 파일 불러오기</button>
+      <input type="file" id="importInput" accept="application/json" hidden />
+      <button class="btn danger" id="resetBtn">전체 초기화</button>
+    </div>
+    <p class="small-note" style="margin-top:12px">수업 내용, 반 이름, 진행 여부, 링크 정보는 이 브라우저에 저장됩니다. 파일 자료는 별도 브라우저 저장소에 보관됩니다.</p>
+    <div class="modal-actions"><button class="btn" id="closeSettings">닫기</button></div>
+  </div>
+</dialog>
+
+<script>
+const STORAGE_KEY = 'lessonTracker_v1';
+let state = loadState();
+let editingLessonId = null;
+let resourceLessonId = null;
+
+function defaultState(){
+  return {
+    classes:['1반','2반','3반'],
+    lessons:[]
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : defaultState();
+  }catch(e){ return defaultState(); }
+}
+function saveState(){
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    render();
+    return true;
+  } catch(err) {
+    console.error('저장 실패:', err);
+    alert('저장에 실패했어요. 브라우저의 저장 공간이나 개인정보 보호 설정을 확인해주세요. 가능하면 GitHub Pages 주소에서 앱을 열어 사용해주세요.');
+    return false;
+  }
+}
+let toastTimer;
+function showSaveToast(){
+  const el=document.getElementById('saveToast');
+  el.hidden=false;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{el.hidden=true;},1800);
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function escapeHtml(s=''){
+  return s.replace(/[&<>'"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#039;','"':'&quot;' }[c]));
+}
+function normalizeUrl(url){
+  if(!url) return '';
+  return /^https?:\/\//i.test(url) ? url : 'https://' + url;
+}
+
+function render(){
+  renderClasses();
+  renderLessons();
+}
+let classDialogMode='add';
+let classDialogIndex=-1;
+function openClassDialog(mode,index=-1){
+  classDialogMode=mode;
+  classDialogIndex=index;
+  const name=index>=0 ? state.classes[index] : '';
+  document.getElementById('classDialogTitle').textContent=mode==='add'?'반 추가':mode==='edit'?'반 이름 수정':'반 삭제';
+  document.getElementById('classNameInput').value=mode==='add'?'':name;
+  document.getElementById('classNameField').hidden=mode==='delete';
+  document.getElementById('classDeleteNotice').hidden=mode!=='delete';
+  document.getElementById('classDeleteNotice').textContent=`‘${name}’을(를) 삭제할까요? 이 반의 완료 체크도 함께 삭제됩니다. 다른 반과 차시 내용은 유지돼요.`;
+  document.getElementById('saveClassBtn').textContent=mode==='delete'?'삭제하기':'저장';
+  document.getElementById('saveClassBtn').className=mode==='delete'?'btn danger':'btn primary';
+  document.getElementById('classError').style.display='none';
+  document.getElementById('classDialog').showModal();
+  if(mode!=='delete')setTimeout(()=>document.getElementById('classNameInput').focus(),30);
+}
+let selectedClassIndex=-1;
+function openClassMenu(index){
+  selectedClassIndex=index;
+  document.getElementById('classMenuTitle').textContent=state.classes[index]+' 관리';
+  document.getElementById('classMenuDialog').showModal();
+}
+function renderClasses(){
+  document.getElementById('classCount').textContent=`(${state.classes.length}개 반)`;
+  const el=document.getElementById('classList');
+  el.innerHTML=state.classes.map((c,i)=>`<button type="button" class="class-chip" data-i="${i}" aria-label="${escapeHtml(c)} 관리 메뉴 열기">${escapeHtml(c)}</button>`).join('');
+  el.querySelectorAll('[data-i]').forEach(btn=>btn.addEventListener('click',()=>openClassMenu(Number(btn.dataset.i))));
+}
+function saveClassFromButton(){
+  const error=document.getElementById('classError');
+  error.style.display='none';
+  const name=document.getElementById('classNameInput').value.trim();
+  const mode=classDialogMode, idx=classDialogIndex;
+  if(mode!=='add' && (idx<0 || idx>=state.classes.length)){
+    error.textContent='수정하거나 삭제할 반을 찾을 수 없어요.';error.style.display='block';return;
+  }
+  if(mode!=='delete'){
+    if(!name){error.textContent='반 이름을 입력해 주세요.';error.style.display='block';return;}
+    if(state.classes.some((c,i)=>c===name && (mode==='add'||i!==idx))){error.textContent='이미 같은 이름의 반이 있어요.';error.style.display='block';return;}
+  }
+  try{
+    const next=JSON.parse(JSON.stringify(state));
+    if(mode==='add')next.classes.push(name);
+    if(mode==='edit'){
+      const old=next.classes[idx];
+      next.classes[idx]=name;
+      next.lessons.forEach(l=>{l.done=l.done||{};if(Object.prototype.hasOwnProperty.call(l.done,old)){l.done[name]=l.done[old];delete l.done[old];}l.doneDates=l.doneDates||{};if(Object.prototype.hasOwnProperty.call(l.doneDates,old)){l.doneDates[name]=l.doneDates[old];delete l.doneDates[old];}});
+    }
+    if(mode==='delete'){
+      const old=next.classes[idx];
+      next.classes.splice(idx,1);
+      next.lessons.forEach(l=>{if(l.done)delete l.done[old];if(l.doneDates)delete l.doneDates[old];});
+    }
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+    state=next;
+    render();
+    document.getElementById('classDialog').close();
+    showSaveToast();
+  }catch(err){
+    error.textContent='저장에 실패했어요: '+(err.message||String(err));error.style.display='block';
+  }
+}
+const expandedLessons=new Set();
+function renderLessons(){
+  const list=document.getElementById('lessonList');
+  const empty=document.getElementById('emptyState');
+  const lessons=[...state.lessons].sort((a,b)=>Number(a.no)-Number(b.no));
+  empty.hidden=lessons.length>0;
+  list.innerHTML=lessons.map(l=>{
+    const resources=(l.resources||[]).map(r=>{
+      if(r.type==='link'){
+        return `<div class="resource"><span>🔗</span><a href="${escapeHtml(normalizeUrl(r.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(r.name||r.url)}</a></div>`;
+      }
+      return `<div class="resource"><span>📎</span><button class="file-link" data-file-id="${escapeHtml(r.fileId)}">${escapeHtml(r.name)}</button><button type="button" class="resource-remove" data-delete-file="${escapeHtml(l.id)}" data-resource-id="${escapeHtml(r.id)}" aria-label="${escapeHtml(r.name)} 삭제" title="파일 삭제">🗑</button></div>`;
+    }).join('');
+    const progress=state.classes.map(c=>{
+      const done=!!(l.done&&l.done[c]);
+      const date=(l.doneDates&&l.doneDates[c])||'';
+      return `<div class="class-progress"><button type="button" class="done-btn ${done?'done':''}" onclick="toggleDone('${l.id}','${encodeURIComponent(c)}')" aria-pressed="${done}">${done?'✓ ':''}${escapeHtml(c)}</button>${done?`<input class="class-date" type="date" value="${escapeHtml(date)}" data-date-lesson="${escapeHtml(l.id)}" data-date-class="${escapeHtml(c)}" aria-label="${escapeHtml(c)} 수업 날짜" title="${escapeHtml(c)} 수업 날짜 선택">`:''}</div>`;
+    }).join('');
+    const isExpanded=expandedLessons.has(String(l.id));
+    const summaryProgress=state.classes.map(c=>{
+      const done=!!(l.done&&l.done[c]);
+      return `<button type="button" class="summary-class ${done?'done':''}" data-summary-lesson="${escapeHtml(l.id)}" data-summary-class="${escapeHtml(c)}" aria-label="${escapeHtml(c)} ${done?'완료':'미완료'} · 눌러서 변경" aria-pressed="${done}">${done?'✓ ':''}${escapeHtml(c)}</button>`;
+    }).join('');
+    return `<article class="lesson">
+      <div class="lesson-summary">
+        <button type="button" class="lesson-toggle" data-toggle-lesson="${escapeHtml(l.id)}" aria-expanded="${isExpanded?'true':'false'}">
+          <span class="lesson-no">${escapeHtml(String(l.no))}차시</span>
+          <span class="lesson-main"><span class="lesson-title">${escapeHtml(l.title)}</span></span>
+          <span class="lesson-chevron" aria-hidden="true">${isExpanded?'⌃':'⌄'}</span>
+        </button>
+        <div class="summary-progress" aria-label="반별 진행 상태">${summaryProgress}</div>
+      </div>
+      <div class="lesson-details" ${isExpanded?'':'hidden'}>
+        <div class="lesson-content">
+          ${l.note?`<div class="lesson-note">${escapeHtml(l.note)}</div>`:''}
+          <div class="resources">${resources}</div>
+          <div class="lesson-actions">
+            <button class="mini" onclick="openResourceDialog('${l.id}')">자료</button>
+            <button class="mini" onclick="deleteLesson('${l.id}')">삭제</button>
+          </div>
+        </div>
+        <div class="progress" aria-label="반별 수업 진행 여부">
+          <div class="progress-label">반별 진행</div>
+          <div class="progress-hint">반을 누르면 완료 표시 · 날짜를 눌러 변경</div>
+          ${progress || '<div class="small-note">반을 추가해주세요.</div>'}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+  list.querySelectorAll('[data-toggle-lesson]').forEach(btn=>btn.addEventListener('click',()=>{
+    const id=btn.dataset.toggleLesson;
+    if(expandedLessons.has(id))expandedLessons.delete(id);else expandedLessons.add(id);
+    renderLessons();
+  }));
+  list.querySelectorAll('[data-summary-lesson]').forEach(btn=>btn.addEventListener('click',()=>toggleDone(btn.dataset.summaryLesson,encodeURIComponent(btn.dataset.summaryClass))));
+  list.querySelectorAll('[data-date-lesson]').forEach(input=>input.addEventListener('change',()=>setClassDate(input.dataset.dateLesson,input.dataset.dateClass,input.value)));
+  list.querySelectorAll('[data-file-id]').forEach(btn=>btn.addEventListener('click',()=>downloadStoredFile(btn.dataset.fileId,btn.textContent)));
+  list.querySelectorAll('[data-delete-file]').forEach(btn=>btn.addEventListener('click',()=>requestResourceDelete(btn.dataset.deleteFile,btn.dataset.resourceId)));
+}
+
+function openLessonDialog(){
+  editingLessonId=null;
+  document.getElementById('lessonDialogTitle').textContent='차시 추가';
+  document.getElementById('lessonNo').value=state.lessons.length? Math.max(...state.lessons.map(l=>Number(l.no)||0))+1 : 1;
+  document.getElementById('lessonTitle').value='';
+  document.getElementById('lessonNote').value='';
+  document.getElementById('linkName').value='';
+  document.getElementById('linkUrl').value='';
+  document.getElementById('lessonFileInput').value='';
+  document.getElementById('saveError').style.display='none';
+  document.getElementById('lessonDialog').showModal();
+}
+function editLesson(id){
+  const l=state.lessons.find(x=>x.id===id); if(!l)return;
+  editingLessonId=id;
+  document.getElementById('lessonDialogTitle').textContent='차시 수정';
+  document.getElementById('lessonNo').value=l.no;
+  document.getElementById('lessonTitle').value=l.title;
+  document.getElementById('lessonNote').value=l.note||'';
+  document.getElementById('linkName').value='';
+  document.getElementById('linkUrl').value='';
+  document.getElementById('lessonFileInput').value='';
+  document.getElementById('saveError').style.display='none';
+  document.getElementById('lessonDialog').showModal();
+}
+let deleteAction=null;
+function askDelete(title,message,action){
+  deleteAction=action;
+  document.getElementById('confirmDeleteTitle').textContent=title;
+  document.getElementById('confirmDeleteMessage').textContent=message;
+  document.getElementById('confirmDeleteError').style.display='none';
+  document.getElementById('confirmDeleteDialog').showModal();
+}
+function deleteLesson(id){
+  const lesson=state.lessons.find(x=>x.id===id);
+  if(!lesson)return;
+  askDelete('차시 삭제',`‘${lesson.no}차시 · ${lesson.title}’을(를) 삭제할까요? 첨부한 파일과 이 차시의 반별 진도도 함께 삭제됩니다.`,async()=>{
+    const next=JSON.parse(JSON.stringify(state));
+    next.lessons=next.lessons.filter(x=>x.id!==id);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+    state=next;
+    render();
+    for(const r of (lesson.resources||[]).filter(x=>x.type==='file')) await deleteFileFromDB(r.fileId);
+    showSaveToast();
+  });
+}
+function requestResourceDelete(lessonId,resId){
+  const l=state.lessons.find(x=>x.id===lessonId);
+  const r=(l?.resources||[]).find(x=>x.id===resId);
+  if(!r)return;
+  askDelete(r.type==='file'?'파일만 삭제':'링크 삭제',`‘${r.name||r.url}’${r.type==='file'?' 파일만':' 링크만'} 삭제할까요? 차시 내용과 다른 자료는 그대로 유지됩니다.`,async()=>{
+    const next=JSON.parse(JSON.stringify(state));
+    const lesson=next.lessons.find(x=>x.id===lessonId);
+    lesson.resources=(lesson.resources||[]).filter(x=>x.id!==resId);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+    state=next;
+    render();
+    if(r.type==='file')await deleteFileFromDB(r.fileId);
+    if(resourceLessonId===lessonId&&document.getElementById('resourceDialog').open)renderResourceManage();
+    showSaveToast();
+  });
+}
+function todayLocal(){
+  const d=new Date();
+  return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+}
+function toggleDone(id,encodedClass){
+  const cls=decodeURIComponent(encodedClass);
+  const l=state.lessons.find(x=>x.id===id); if(!l)return;
+  l.done=l.done||{};
+  l.doneDates=l.doneDates||{};
+  l.done[cls]=!l.done[cls];
+  if(l.done[cls])l.doneDates[cls]=l.doneDates[cls]||todayLocal();
+  else delete l.doneDates[cls];
+  if(saveState())showSaveToast();
+}
+function setClassDate(id,cls,value){
+  const l=state.lessons.find(x=>x.id===id);
+  if(!l||!l.done||!l.done[cls])return;
+  l.doneDates=l.doneDates||{};
+  if(value)l.doneDates[cls]=value;
+  else delete l.doneDates[cls];
+  if(saveState())showSaveToast();
+}
+function openResourceDialog(id){
+  resourceLessonId=id;
+  document.getElementById('resLinkName').value='';
+  document.getElementById('resLinkUrl').value='';
+  document.getElementById('fileInput').value='';
+  renderResourceManage();
+  document.getElementById('resourceDialog').showModal();
+}
+function renderResourceManage(){
+  const l=state.lessons.find(x=>x.id===resourceLessonId);
+  const el=document.getElementById('resourceManageList');
+  const resources=l?.resources||[];
+  el.innerHTML=resources.length?resources.map(r=>`<div class="resource"><span class="label">${r.type==='link'?'🔗':'📎'} ${escapeHtml(r.name||r.url)}</span><button type="button" class="btn danger" data-remove-resource="${escapeHtml(r.id)}">삭제</button></div>`).join(''):'등록된 자료가 없어요.';
+  el.querySelectorAll('[data-remove-resource]').forEach(btn=>btn.addEventListener('click',()=>requestResourceDelete(resourceLessonId,btn.dataset.removeResource)));
+}
+function deleteResource(lessonId,resId){
+  const l=state.lessons.find(x=>x.id===lessonId); if(!l)return;
+  const r=(l.resources||[]).find(x=>x.id===resId);
+  if(r?.type==='file') deleteFileFromDB(r.fileId);
+  l.resources=(l.resources||[]).filter(x=>x.id!==resId);
+  saveState();
+}
+
+// IndexedDB for attached files
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('lessonTrackerFiles',1);
+    req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains('files')) req.result.createObjectStore('files'); };
+    req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+  });
+}
+async function storeFile(file){
+  const db=await openDB(), id=uid();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction('files','readwrite');
+    tx.objectStore('files').put(file,id); tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+  });
+  db.close(); return id;
+}
+async function getStoredFile(id){
+  const db=await openDB();
+  const value=await new Promise((resolve,reject)=>{ const tx=db.transaction('files','readonly'); const r=tx.objectStore('files').get(id); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); });
+  db.close(); return value;
+}
+async function deleteFileFromDB(id){
+  if(!id)return; try{ const db=await openDB(); const tx=db.transaction('files','readwrite'); tx.objectStore('files').delete(id); db.close(); }catch(e){}
+}
+async function downloadStoredFile(id,name){
+  const file=await getStoredFile(id);
+  if(!file){ alert('파일을 찾을 수 없어요.'); return; }
+  const url=URL.createObjectURL(file); const a=document.createElement('a'); a.href=url; a.download=name||file.name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById('cancelDeleteBtn').addEventListener('click',()=>{deleteAction=null;document.getElementById('confirmDeleteDialog').close();});
+document.getElementById('confirmDeleteBtn').addEventListener('click',async()=>{
+  const action=deleteAction;if(!action)return;
+  const btn=document.getElementById('confirmDeleteBtn');
+  btn.disabled=true;
+  try{
+    await action();
+    document.getElementById('confirmDeleteDialog').close();
+    deleteAction=null;
+  }catch(err){
+    const el=document.getElementById('confirmDeleteError');
+    el.textContent='삭제에 실패했어요: '+(err.message||String(err));el.style.display='block';
+  }finally{btn.disabled=false;}
+});
+window.downloadStoredFile=downloadStoredFile;
+window.toggleDone=toggleDone;window.deleteLesson=deleteLesson;window.editLesson=editLesson;window.openResourceDialog=openResourceDialog;window.deleteResource=deleteResource;
+
+// events
+document.getElementById('addLessonBtn').addEventListener('click',openLessonDialog);
+document.getElementById('addClassBtn').addEventListener('click',()=>openClassDialog('add'));
+document.getElementById('menuCloseClass').addEventListener('click',()=>document.getElementById('classMenuDialog').close());
+document.getElementById('menuEditClass').addEventListener('click',()=>{
+  const index=selectedClassIndex;
+  document.getElementById('classMenuDialog').close();
+  openClassDialog('edit',index);
+});
+document.getElementById('menuDeleteClass').addEventListener('click',()=>{
+  const index=selectedClassIndex;
+  document.getElementById('classMenuDialog').close();
+  openClassDialog('delete',index);
+});
+document.getElementById('cancelClassBtn').addEventListener('click',()=>document.getElementById('classDialog').close());
+document.getElementById('saveClassBtn').addEventListener('click',saveClassFromButton);
+document.getElementById('classNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveClassFromButton();}});
+document.getElementById('cancelLessonBtn').addEventListener('click',()=>document.getElementById('lessonDialog').close());
+async function saveLessonFromButton(){
+  const saveBtn=document.getElementById('saveLessonBtn');
+  if(saveBtn.disabled)return;
+  const errorEl=document.getElementById('saveError');
+  errorEl.style.display='none';
+  try {
+    const no=document.getElementById('lessonNo').value.trim();
+    const title=document.getElementById('lessonTitle').value.trim();
+    const note=document.getElementById('lessonNote').value.trim();
+    const linkName=document.getElementById('linkName').value.trim();
+    const linkUrl=document.getElementById('linkUrl').value.trim();
+    const selectedFiles=Array.from(document.getElementById('lessonFileInput').files);
+    if(!no||!title){
+      errorEl.textContent='차시와 수업 내용을 모두 입력해 주세요.';
+      errorEl.style.display='block';
+      if(!no)document.getElementById('lessonNo').focus();
+      else document.getElementById('lessonTitle').focus();
+      return;
+    }
+    const newState=JSON.parse(JSON.stringify(state));
+    if(editingLessonId){
+      const l=newState.lessons.find(x=>x.id===editingLessonId);
+      if(!l)throw new Error('수정할 차시를 찾을 수 없어요.');
+      l.no=no; l.title=title; l.note=note;
+      if(linkUrl){l.resources=l.resources||[];l.resources.push({id:uid(),type:'link',name:linkName||linkUrl,url:normalizeUrl(linkUrl)});}
+    } else {
+      const resources=[];
+      if(linkUrl)resources.push({id:uid(),type:'link',name:linkName||linkUrl,url:normalizeUrl(linkUrl)});
+      newState.lessons.push({id:uid(),no,title,note,resources,done:{}});
+    }
+    const target=editingLessonId?newState.lessons.find(x=>x.id===editingLessonId):newState.lessons[newState.lessons.length-1];
+    const uploadedIds=[];
+    saveBtn.disabled=true;
+    saveBtn.textContent='저장 중…';
+    try{
+      for(const file of selectedFiles){
+        const fileId=await storeFile(file);
+        uploadedIds.push(fileId);
+        target.resources=target.resources||[];
+        target.resources.push({id:uid(),type:'file',name:file.name,fileId});
+      }
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(newState));
+    }catch(e){
+      for(const fileId of uploadedIds)await deleteFileFromDB(fileId);
+      throw e;
+    }
+    state=newState;
+    render();
+    document.getElementById('lessonDialog').close();
+    showSaveToast();
+  }catch(err){
+    errorEl.textContent='저장하지 못했어요: '+(err.message||String(err))+' (브라우저 저장 권한을 확인해 주세요.)';
+    errorEl.style.display='block';
+  }finally{saveBtn.disabled=false;saveBtn.textContent='저장';}
+}
+document.getElementById('saveLessonBtn').addEventListener('click',saveLessonFromButton);
+document.getElementById('addLinkConfirm').addEventListener('click',()=>{
+  const name=document.getElementById('resLinkName').value.trim(); const url=document.getElementById('resLinkUrl').value.trim();
+  if(!url){alert('주소를 입력해주세요.');return;}
+  const l=state.lessons.find(x=>x.id===resourceLessonId); if(!l)return;
+  l.resources=l.resources||[];l.resources.push({id:uid(),type:'link',name:name||url,url:normalizeUrl(url)});saveState();
+  document.getElementById('resLinkName').value='';document.getElementById('resLinkUrl').value='';renderResourceManage();
+});
+document.getElementById('fileInput').addEventListener('change',async e=>{
+  const file=e.target.files[0]; if(!file||!resourceLessonId)return;
+  try{
+    const fileId=await storeFile(file);
+    const l=state.lessons.find(x=>x.id===resourceLessonId); l.resources=l.resources||[];
+    l.resources.push({id:uid(),type:'file',name:file.name,fileId}); saveState();
+    e.target.value='';renderResourceManage();showSaveToast();
+  }catch(err){alert('파일 저장에 실패했어요. 브라우저 저장 공간을 확인해주세요.');}
+});
+document.getElementById('editLessonFromResources').addEventListener('click',()=>{
+  const id=resourceLessonId;
+  document.getElementById('resourceDialog').close();
+  if(id)editLesson(id);
+});
+document.getElementById('closeResource').addEventListener('click',()=>document.getElementById('resourceDialog').close());
+document.getElementById('openSettings').addEventListener('click',()=>document.getElementById('settingsDialog').showModal());
+document.getElementById('closeSettings').addEventListener('click',()=>document.getElementById('settingsDialog').close());
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url;a.download='수업진도표_백업.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importInput').click());
+document.getElementById('importInput').addEventListener('change',async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{const text=await file.text();const data=JSON.parse(text);if(!Array.isArray(data.classes)||!Array.isArray(data.lessons))throw new Error();state=data;saveState();alert('불러오기를 완료했어요.');}catch(err){alert('올바른 백업 파일이 아니에요.');}
+  e.target.value='';
+});
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  if(confirm('모든 수업 내용과 진도 체크를 초기화할까요?')){state=defaultState();localStorage.removeItem(STORAGE_KEY);saveState();document.getElementById('settingsDialog').close();}
+});
+
+render();
+</script>
+</body>
+</html>
